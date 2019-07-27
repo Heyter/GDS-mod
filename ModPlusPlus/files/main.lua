@@ -55,6 +55,8 @@ translation.addBulk("ru", {
 	['discount_rate'] = 'Скидка DISCOUNT%',
 	['A_DISCOUNT_DESC'] = 'Установить скидку для игры',
 	['DISCOUNT_MISCELLANEOUS_LABEL'] = 'Разное',
+	['preferences_modplusplus_bank'] = 'Автоплатеж кредита',
+	['preferences_modplusplus_bank_desc'] = 'Автоплатеж кредита каждый месяц',
 })
 
 --[[---------------------------------------------------------

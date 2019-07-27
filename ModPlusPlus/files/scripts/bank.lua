@@ -1,5 +1,18 @@
 monthlyCost.MAX_LOAN = 250000
 
+local pref_modplusplus_bank = "pref_modplusplus_bank"
+
+preferences:registerNew({
+	id = pref_modplusplus_bank,
+	display = _T("preferences_modplusplus_bank", "Autopay loan"),
+	description = _T("preferences_modplusplus_bank_desc", "Autopay loan every month.")
+})
+
+local old_popup = contractWork.createContractWorkOfferPopup
+function contractWork:createContractWorkOfferPopup()
+	old_popup(self)
+end
+
 local difficulty = {
 	['ultra_easy'] = 500000,
 	['very_easy'] = 250000,
@@ -27,7 +40,7 @@ function handler:handleEvent(event)
 			studio.loan = 0
 		end
 	else
-		if studio:getLoan() > 0 then
+		if preferences:get(pref_modplusplus_bank) and studio:getLoan() > 0 then
 			studio:changeLoan(-monthlyCost.LOAN_CHANGE_AMOUNT)
 		end
 	end
