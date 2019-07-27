@@ -8,11 +8,6 @@ preferences:registerNew({
 	description = _T("preferences_modplusplus_bank_desc", "Autopay loan every month.")
 })
 
-local old_popup = contractWork.createContractWorkOfferPopup
-function contractWork:createContractWorkOfferPopup()
-	old_popup(self)
-end
-
 local difficulty = {
 	['ultra_easy'] = 500000,
 	['very_easy'] = 250000,
