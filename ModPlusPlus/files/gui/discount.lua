@@ -1,7 +1,6 @@
 local discountBtn = {}
 
-function discountBtn:setProject(proj, textbox, this)
-	self.project = proj
+function discountBtn:setProject(textbox, this)
 	self.discount = textbox
 	self.this_project = this
 end
@@ -9,7 +8,7 @@ end
 function discountBtn:onClick(x, y, key)
 	if key == gui.mouseKeys.LEFT then
 		if not self.discount:getText() or self.discount:getText() == '' then return end
-		self.project:OfferDiscount(self.discount:getText(), self.this_project)
+		OfferDiscount(self.discount:getText(), self.this_project)
 		frameController:pop()
 	end
 end

@@ -15,13 +15,13 @@ local difficulty = {
 	['normal'] = 50000,
 }
 
-local CATCHABLE_EVENTS = {
-	timeline.EVENTS.NEW_TIMELINE,
-	timeline.EVENTS.NEW_MONTH,
-	studio.EVENTS.CHANGED_LOAN
+local handler = {
+	events = {
+		timeline.EVENTS.NEW_TIMELINE,
+		timeline.EVENTS.NEW_MONTH,
+		studio.EVENTS.CHANGED_LOAN
+	}
 }
-
-local handler = {}
 
 function handler:handleEvent(event)
 	if event == timeline.EVENTS.NEW_TIMELINE then
@@ -41,7 +41,7 @@ function handler:handleEvent(event)
 	end
 end
 
-events:addDirectReceiver(handler, CATCHABLE_EVENTS)
+events:addDirectReceiver(handler, handler.events)
 
 function studio:changeLoan(change)
 	self.loan = math.Clamp(self.loan + change, 0, monthlyCost.MAX_LOAN)
