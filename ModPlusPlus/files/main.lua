@@ -1,3 +1,5 @@
+ModPlusPlus = {}
+
 contractor.MILESTONE_EARLY_COMPLETION_BONUS_BASE_AMOUNT = 5000
 contractor.MILESTONE_EARLY_COMPLETION_BONUS_PER_SCALE = 15000
 contractor.MILESTONE_DEADLINE_REDUCE_AMOUNT = 0.75
@@ -43,11 +45,14 @@ translation.addBulk("ru", {
 	['THEME_DEMONS'] = 'Демоны',
 	['GO_OFF_MARKET'] = 'Убрать с рынка',
 	['A_DISCOUNT'] = 'Скидка',
-	['discount_rate'] = 'Скидка DISCOUNT%',
+	['discount_rate'] = 'Скидка: DISCOUNT%',
 	['A_DISCOUNT_DESC'] = 'Установить скидку для игры',
 	['DISCOUNT_MISCELLANEOUS_LABEL'] = 'Разное',
-	['preferences_modplusplus_bank'] = 'Автоплатеж кредита',
-	['preferences_modplusplus_bank_desc'] = 'Автоплатеж кредита каждый месяц',
+	['TAX_PERCENTAGE_DYNAMIC'] = "Процентный налог TEXT на VALUE%.",
+	['TAX_PERCENTAGE_DYNAMIC_TEXT_INC'] = "вырос",
+	['TAX_PERCENTAGE_DYNAMIC_TEXT_DEC'] = "снизился"
+	-- ['preferences_modplusplus_bank'] = 'Автоплатеж кредита',
+	-- ['preferences_modplusplus_bank_desc'] = 'Автоплатеж кредита каждый месяц',
 })
 
 --[[---------------------------------------------------------
@@ -70,50 +75,51 @@ local function ADD_ARRAY(obj, name, value)
 	array = nil
 end
 
-function OfferDiscount(value, obj)
+function ModPlusPlus.OfferDiscount(value, obj)
+	math.randomseed(timeline.curTime + 1)
+	
 	value = math.Clamp(tonumber(value), 0, 100)
 	
 	if not obj:getFact('DISCOUNT_PRICE') then
-		obj:setFact('DISCOUNT_PRICE', obj:getPrice())
-	end
-	
-	if not obj:getFact('DISCOUNT_TIME') and obj:getFact('DISCOUNT_PRICE') and obj:getFact('DISCOUNT_VALUE') ~= value then
-		local lowA, lowB = math.random(1, 100), math.random(2, 6)
-		local lowC = math.Clamp(tonumber((obj.DISCOUNT_DECREASE or 0)-0.15), 0, 1000)
-		obj:changeTimeSaleAffector(-math.Clamp(tonumber((value+lowA) * 100) / lowC, gameProject.MAX_TIME_SALE_AFFECTOR_FROM_POPULARITY, 5000 * lowB))
-		
-		local _price = math.round(tonumber(obj:getFact('DISCOUNT_PRICE')) * (1 - (tonumber(value) / 100)), 2)
-		if obj:setPrice(_price) then
-			obj:setFact("DISCOUNT_VALUE", value)
+		if value > 0 then
+			obj:setFact('DISCOUNT_PRICE', obj:getPrice())
 			
-			if math.random(1, 100) <= math.random(1, 100) then
-				obj.DISCOUNT_DECREASE = (obj.DISCOUNT_DECREASE or 0) + 1
+			if not obj:getFact('DISCOUNT_OLD_PRICE') then
+				obj:setFact('DISCOUNT_OLD_PRICE', obj:getPrice())
 			end
 		end
-		_price = nil
+	else
+		if value < 1 then
+			obj:setFact('DISCOUNT_PRICE', nil)
+			obj:setPrice(obj:getFact('DISCOUNT_OLD_PRICE') or obj:getPrice())
+			return
+		end
+	end
+	
+	local old_discount_value = obj:getFact('DISCOUNT_VALUE')
+	
+	if not obj:getFact('DISCOUNT_TIME') and obj:getFact('DISCOUNT_PRICE') and old_discount_value ~= value then
+		if obj:getFact('DISCOUNT_INIT') and (value < old_discount_value or math.random(1, 3) == 2) then
+			obj:setFact("DISCOUNT_DECREASE", (obj:getFact('DISCOUNT_DECREASE') or 0) + 2)
+		end
+		
+		local lowA, lowB = math.random(1, 100), math.random(2, 6)
+		local lowC = math.Clamp(tonumber((obj:getFact('DISCOUNT_DECREASE') or 0)-0.15), 0, 1000)
+		obj:changeTimeSaleAffector(-math.Clamp(tonumber((value+lowA) * 100) / lowC, gameProject.MAX_TIME_SALE_AFFECTOR_FROM_POPULARITY, 5000 * lowB))
+		
+		local game_price = math.round(tonumber(obj:getFact('DISCOUNT_PRICE')) * (1 - (tonumber(value) / 100)), 2)
+		if obj:setPrice(game_price) then
+			obj:setFact("DISCOUNT_VALUE", value)
+			obj:setFact("DISCOUNT_INIT", true)
+			
+			if math.random(1, 100) <= math.random(1, 100) then
+				obj:setFact("DISCOUNT_DECREASE", (obj:getFact('DISCOUNT_DECREASE') or 0) + 1)
+			end
+		end
+		game_price = nil
 		
 		ADD_ARRAY(studio, obj:getUniqueID(), true)
 		obj:setFact('DISCOUNT_TIME', timeline.curTime + (timeline.DAYS_IN_MONTH + 7))
-	end
-end
-
--- gameProject.EVENTS.FILL_GAME_INFO_SCROLLER next update
-local old_element = gameProject.fillGameInfoScroller
-function gameProject:fillGameInfoScroller(scroller)
-	old_element(self, scroller)
-	
-	if self:getFact('DISCOUNT_VALUE') then
-		local financialCat = gui.create("Category")
-		financialCat:setFont("bh24")
-		financialCat:setText(_T('DISCOUNT_MISCELLANEOUS_LABEL', 'Miscellaneous'))
-		financialCat:assumeScrollbar(scroller)
-		scroller:addItem(financialCat)
-		
-		local w, h = scroller:getSize()
-		w = w - 20
-	
-		local discount = self:_createTextPanel("game_copy_price", "bh20", w, 22, nil, 24, _format(_T("discount_rate", "A discount: DISCOUNT%"), "DISCOUNT", self:getFact('DISCOUNT_VALUE')))
-		financialCat:addItem(discount)
 	end
 end
 
@@ -121,11 +127,12 @@ local handler = {
 	events = {
 		gameProject.EVENTS.OPENED_INTERACTION_MENU,
 		timeline.EVENTS.NEW_DAY,
-		gameProject.EVENTS.GAME_OFF_MARKET
+		gameProject.EVENTS.GAME_OFF_MARKET,
+		gameProject.EVENTS.FILL_GAME_INFO_SCROLLER
 	}
 }
 
-function handler:handleEvent(event, gameProj)
+function handler:handleEvent(event, gameProj, data)
 	if event == gameProject.EVENTS.OPENED_INTERACTION_MENU then
 		if gameProj.releaseDate and not gameProj.contractor and not gameProj.publisher and not gameProj.offMarket then
 			if gameProj:getDaysSinceRelease() > 7 then
@@ -194,7 +201,20 @@ function handler:handleEvent(event, gameProj)
 		end
 	elseif event == gameProject.EVENTS.GAME_OFF_MARKET and studio:getFact('DISCOUNT_ARRAY') and studio:getFact('DISCOUNT_ARRAY')[gameProj:getUniqueID()] then
 		gameProj:setFact('DISCOUNT_TIME', nil)
+		gameProj:setFact('DISCOUNT_VALUE', nil)
 		ADD_ARRAY(studio, gameProj, nil)
+	elseif event == gameProject.EVENTS.FILL_GAME_INFO_SCROLLER and gameProj:getFact('DISCOUNT_VALUE') then
+		local financialCat = gui.create("Category")
+		financialCat:setFont("bh24")
+		financialCat:setText(_T('DISCOUNT_MISCELLANEOUS_LABEL', 'Miscellaneous'))
+		financialCat:assumeScrollbar(data)
+		data:addItem(financialCat)
+		
+		local w, h = data:getSize()
+		w = w - 20
+	
+		local discount = gameProj:_createTextPanel("game_copy_price", "bh20", w, 22, nil, 24, _format(_T("discount_rate", "A discount: DISCOUNT%"), "DISCOUNT", gameProj:getFact('DISCOUNT_VALUE')))
+		financialCat:addItem(discount)
 	end
 end
 events:addDirectReceiver(handler, handler.events)

@@ -8,7 +8,7 @@ end
 function discountBtn:onClick(x, y, key)
 	if key == gui.mouseKeys.LEFT then
 		if not self.discount:getText() or self.discount:getText() == '' then return end
-		OfferDiscount(self.discount:getText(), self.this_project)
+		ModPlusPlus.OfferDiscount(self.discount:getText(), self.this_project)
 		frameController:pop()
 	end
 end
