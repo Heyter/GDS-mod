@@ -30,7 +30,8 @@ local handler = {
 		timeline.EVENTS.NEW_TIMELINE,
 		timeline.EVENTS.NEW_YEAR,
 		studio.EVENTS.CHANGED_LOAN,
-		game.EVENTS.NEW_GAME_STARTED
+		game.EVENTS.NEW_GAME_STARTED,
+		game.EVENTS.GAME_LOGIC_STARTED
 	}
 }
 
@@ -55,12 +56,14 @@ function handler:handleEvent(event)
 		-- shitty code.
 		if random == 1 then -- bad
 			gameProject.SALE_POST_TAX_PERCENTAGE = math.Clamp(gameProject.SALE_POST_TAX_PERCENTAGE - (math.random(1, ModPlusPlus.sale_tax_random_max) / 100), ModPlusPlus.sale_tax_max, ModPlusPlus.difficulty_sale_tax[game.difficultyID])
+			studio:setFact("SALE_POST_TAX_PERCENTAGE_ModPlusPlus", gameProject.SALE_POST_TAX_PERCENTAGE)
 			
 			if gameProject.SALE_POST_TAX_PERCENTAGE ~= old_tax then
 				game.addToEventBox("tax_percentage_dynamic", {text = _T('TAX_PERCENTAGE_DYNAMIC_TEXT_INC', 'increased'), value = math.round((1 - gameProject.SALE_POST_TAX_PERCENTAGE) * 100, 1)}, 1)
 			end
 		elseif random == 2 then -- good
 			gameProject.SALE_POST_TAX_PERCENTAGE = math.Clamp(gameProject.SALE_POST_TAX_PERCENTAGE + (math.random(1, ModPlusPlus.sale_tax_random_max) / 100), ModPlusPlus.sale_tax_max, ModPlusPlus.difficulty_sale_tax[game.difficultyID])
+			studio:setFact("SALE_POST_TAX_PERCENTAGE_ModPlusPlus", gameProject.SALE_POST_TAX_PERCENTAGE)
 			
 			if gameProject.SALE_POST_TAX_PERCENTAGE ~= old_tax then
 				game.addToEventBox("tax_percentage_dynamic", {text = _T('TAX_PERCENTAGE_DYNAMIC_TEXT_DEC', 'decreased'), value = math.round((1 - gameProject.SALE_POST_TAX_PERCENTAGE) * 100, 1)}, 1)
@@ -68,6 +71,9 @@ function handler:handleEvent(event)
 		end
 	elseif event == game.EVENTS.NEW_GAME_STARTED and ModPlusPlus.difficulty_sale_tax[game.difficultyID] then
 		gameProject.SALE_POST_TAX_PERCENTAGE = ModPlusPlus.difficulty_sale_tax[game.difficultyID]
+		studio:setFact("SALE_POST_TAX_PERCENTAGE_ModPlusPlus", gameProject.SALE_POST_TAX_PERCENTAGE)
+	elseif event == game.EVENTS.GAME_LOGIC_STARTED and studio:getFact("SALE_POST_TAX_PERCENTAGE_ModPlusPlus") then
+		gameProject.SALE_POST_TAX_PERCENTAGE = studio:getFact("SALE_POST_TAX_PERCENTAGE_ModPlusPlus")
 	elseif event == studio.EVENTS.CHANGED_LOAN then
 		if studio:getLoan() <= 0 then
 			studio.loan = 0
