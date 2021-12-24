@@ -50,9 +50,9 @@ translation.addBulk("ru", {
 	['DISCOUNT_MISCELLANEOUS_LABEL'] = 'Разное',
 	['TAX_PERCENTAGE_DYNAMIC'] = "Процентный налог TEXT на VALUE%.",
 	['TAX_PERCENTAGE_DYNAMIC_TEXT_INC'] = "вырос",
-	['TAX_PERCENTAGE_DYNAMIC_TEXT_DEC'] = "снизился"
-	-- ['preferences_modplusplus_bank'] = 'Автоплатеж кредита',
-	-- ['preferences_modplusplus_bank_desc'] = 'Автоплатеж кредита каждый месяц',
+	['TAX_PERCENTAGE_DYNAMIC_TEXT_DEC'] = "снизился",
+	['preferences_modplusplus_bank'] = 'Автоплатеж ссуды',
+	['preferences_modplusplus_bank_desc'] = 'Автоплатеж ссуды каждый месяц',
 })
 
 --[[---------------------------------------------------------
@@ -68,7 +68,7 @@ require('scripts/bank')
 
 local function ADD_ARRAY(obj, name, value)
 	if not value then return end
-	
+
 	local array = obj:getFact('DISCOUNT_ARRAY') or {}
 	array[name] = value
 	obj:setFact('DISCOUNT_ARRAY', array)
@@ -77,13 +77,12 @@ end
 
 function ModPlusPlus.OfferDiscount(value, obj)
 	math.randomseed(timeline.curTime + 1)
-	
 	value = math.Clamp(tonumber(value), 0, 100)
-	
+
 	if not obj:getFact('DISCOUNT_PRICE') then
 		if value > 0 then
 			obj:setFact('DISCOUNT_PRICE', obj:getPrice())
-			
+
 			if not obj:getFact('DISCOUNT_OLD_PRICE') then
 				obj:setFact('DISCOUNT_OLD_PRICE', obj:getPrice())
 			end
@@ -95,29 +94,29 @@ function ModPlusPlus.OfferDiscount(value, obj)
 			return
 		end
 	end
-	
+
 	local old_discount_value = obj:getFact('DISCOUNT_VALUE')
-	
+
 	if not obj:getFact('DISCOUNT_TIME') and obj:getFact('DISCOUNT_PRICE') and old_discount_value ~= value then
 		if obj:getFact('DISCOUNT_INIT') and (value < old_discount_value or math.random(1, 3) == 2) then
 			obj:setFact("DISCOUNT_DECREASE", (obj:getFact('DISCOUNT_DECREASE') or 0) + 2)
 		end
-		
+
 		local lowA, lowB = math.random(1, 100), math.random(2, 6)
 		local lowC = math.Clamp(tonumber((obj:getFact('DISCOUNT_DECREASE') or 0)-0.15), 0, 1000)
 		obj:changeTimeSaleAffector(-math.Clamp(tonumber((value+lowA) * 100) / lowC, gameProject.MAX_TIME_SALE_AFFECTOR_FROM_POPULARITY, 5000 * lowB))
-		
+
 		local game_price = math.round(tonumber(obj:getFact('DISCOUNT_PRICE')) * (1 - (tonumber(value) / 100)), 2)
 		if obj:setPrice(game_price) then
 			obj:setFact("DISCOUNT_VALUE", value)
 			obj:setFact("DISCOUNT_INIT", true)
-			
+
 			if math.random(1, 100) <= math.random(1, 100) then
 				obj:setFact("DISCOUNT_DECREASE", (obj:getFact('DISCOUNT_DECREASE') or 0) + 1)
 			end
 		end
 		game_price = nil
-		
+
 		ADD_ARRAY(studio, obj:getUniqueID(), true)
 		obj:setFact('DISCOUNT_TIME', timeline.curTime + (timeline.DAYS_IN_MONTH + 7))
 	end
@@ -139,28 +138,28 @@ function handler:handleEvent(event, gameProj, data)
 				local option = interactionController:getComboBox():addOption(0, 0, 0, 24, _T("GO_OFF_MARKET", "Go off market"), fonts.get("pix20"), gameProject.goOffmarketCallbackDEBUG)
 				option.project = gameProj
 			end
-			
+
 			if gameProj:getDaysSinceRelease() > 14 and not gameProj:getFact('DISCOUNT_TIME') then
 				local option = interactionController:getComboBox():addOption(0, 0, 0, 24, _T("A_DISCOUNT", "A discount"), fonts.get("pix20"), function()
 					local frame = gui.create("Frame")
 					frame:setFont("pix24")
 					frame:setTitle(_T("A_DISCOUNT", "A discount"))
 					frame:setSize(400, 140)
-					
+
 					local frameH = 35
-					
+
 					local label = gui.create("Label", frame)
 					label:setPos(_S(5), _S(30))
 					label:setFont("pix20")
 					label:wrapText(frame.w - _S(10), _T('A_DISCOUNT_DESC', 'Set a discount for the game'))
-					
+
 					frameH = frameH + _US(label.h)
-					
+
 					local buttonWidth = (frame.rawW - 15) / 2
 					local buttonHeight = 28
-					
+
 					frame:setHeight(frameH + buttonHeight + 45)
-					
+
 					local textBox = gui.create("TextBox", frame)
 					textBox:setNumbersOnly(true)
 					textBox:setFont(fonts.get("bh22"))
@@ -170,20 +169,20 @@ function handler:handleEvent(event, gameProj, data)
 					textBox:setMinValue(0)
 					textBox:setSize(frame.rawW - 10, 38)
 					textBox:setPos(_S(5), label.h + label.y + _S(5))
-					
+
 					local DiscountBtn = gui.create("DiscountBtn", frame)
 					DiscountBtn:setSize(buttonWidth, buttonHeight)
 					DiscountBtn:setFont("bh24")
 					DiscountBtn:setText(_T("ACCEPT_OFFER", "Accept offer"))
 					DiscountBtn:setProject(textBox, gameProj)
 					DiscountBtn:setPos(_S(5), frame.h - DiscountBtn.h - _S(5))
-					
+
 					local cancelButton = gui.create("GenericFrameControllerPopButton", frame)
 					cancelButton:setSize(buttonWidth, buttonHeight)
 					cancelButton:setFont("bh24")
 					cancelButton:setText(_T("CANCEL", "Cancel"))
 					cancelButton:setPos(frame.w - _S(5) - cancelButton.w, DiscountBtn.y)
-					
+
 					frame:center()
 					frameController:push(frame)
 				end)
@@ -209,10 +208,10 @@ function handler:handleEvent(event, gameProj, data)
 		financialCat:setText(_T('DISCOUNT_MISCELLANEOUS_LABEL', 'Miscellaneous'))
 		financialCat:assumeScrollbar(data)
 		data:addItem(financialCat)
-		
+
 		local w, h = data:getSize()
 		w = w - 20
-	
+
 		local discount = gameProj:_createTextPanel("game_copy_price", "bh20", w, 22, nil, 24, _format(_T("discount_rate", "A discount: DISCOUNT%"), "DISCOUNT", gameProj:getFact('DISCOUNT_VALUE')))
 		financialCat:addItem(discount)
 	end
